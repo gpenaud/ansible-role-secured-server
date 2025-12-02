@@ -1,0 +1,19 @@
+---
+
+- name: "Network | Crowdsec - Include intrusion-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/network/intrusion.yml
+  tags:
+    - intrusion
+    - psad
+    - crowdsec
+
+- name: "Main - Include psad configuration task-set"
+  ansible.builtin.import_tasks: psad.yml
+  tags:
+    - psad
+
+- name: "Main - Include crowdsec configuration task-set"
+  ansible.builtin.import_tasks: crowdsec.yml
+  tags:
+    - crowdsec

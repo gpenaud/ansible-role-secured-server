@@ -1,0 +1,53 @@
+---
+
+- name: "Network | Crowdsec - Test that crowdsec apt source repository file exists"
+  ansible.builtin.shell: |-
+    test -e /etc/apt/sources.list.d/crowdsec_crowdsec.list
+  changed_when: false
+  failed_when: false
+  register: crowdsec_repository_is_installed
+  tags:
+    - skip_ansible_lint
+
+- name: "Network | Crowdsec - Install crowdsec apt sources for more recent package version"
+  when: crowdsec_repository_is_installed.rc != 0
+  ansible.builtin.include_tasks: crowdsec/apt_sources.yml
+
+- name: "Network | Crowdsec - Install crowdsec packages"
+  become: true
+  ansible.builtin.package:
+    name: "{{ package }}"
+    state: present
+  loop:
+    - crowdsec
+    - crowdsec-firewall-bouncer # crowdsec is a detection engine only. This package add a ban functionality
+  loop_control:
+    loop_var: package
+
+- name: "Network | Crowdsec - Check prometheus installation files exists"
+  ansible.builtin.shell: |-
+    test -e /usr/local/bin/prometheus &&
+    test -e /usr/local/bin/promtool &&
+    test -e /etc/prometheus/prometheus.yml &&
+    test -e /etc/systemd/system/prometheus.service
+  changed_when: false
+  failed_when: false
+  register: prometheus_is_installed
+  tags:
+    - skip_ansible_lint
+
+- name: "Network | Crowdsec - Install prometheus server for crowdsec"
+  when: prometheus_is_installed.rc != 0
+  ansible.builtin.include_tasks: crowdsec/prometheus.yml
+
+- name: "Network | Crowdsec - Add crowdsec scrape configs"
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/prometheus/prometheus.yml
+    insertafter: "static_configs:"
+    block: |
+      {% filter indent(width=6, first=true) %}
+      {{ secure_server_intrusion_crowdsec_prometheus_targets | to_nice_yaml(indent=2, sort_keys=false) -}}
+      {% endfilter %}
+  notify:
+    - Restart prometheus service

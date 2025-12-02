@@ -1,0 +1,5 @@
+---
+secure_server_intrusion_crowdsec_prometheus_targets:
+  - targets: ["localhost:6060"]
+    labels:
+      app: "crowdsec"

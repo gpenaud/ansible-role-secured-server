@@ -1,0 +1,77 @@
+---
+- name: "Network | Crowdsec | Prometheus - Create prometheus group"
+  become: true
+  ansible.builtin.group:
+    state: present
+    name: prometheus
+    system: true
+
+- name: "Network | Crowdsec | Prometheus - Create prometheus user"
+  become: true
+  ansible.builtin.user:
+    state: present
+    name: prometheus
+    shell: /sbin/nologin
+    group: prometheus
+
+- name: "Network | Crowdsec | Prometheus - Create prometheus directories"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "{{ directory }}"
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+  loop_control:
+    loop_var: directory
+
+- name: "Network | Crowdsec | Prometheus - Download prometheus archive"
+  ansible.builtin.get_url:
+    url: https://github.com/prometheus/prometheus/releases/download/v3.7.2/prometheus-3.7.2.linux-amd64.tar.gz
+    dest: /tmp/prometheus.tar.gz
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+
+- name: "Network | Crowdsec | Prometheus - Extract prometheus archive into /tmp"
+  ansible.builtin.unarchive:
+    src: /tmp/prometheus.tar.gz
+    dest: /tmp
+    remote_src: true
+
+- name: "Network | Crowdsec | Prometheus - Copy prometheus extracted files to their destination"
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-3.7.0-rc.0.linux-amd64/{{ file.name }}"
+    dest: "{{ file.path }}/{{ file.name }}"
+    remote_src: true
+    owner: prometheus
+    group: prometheus
+    mode: "{{ file.mode }}"
+  loop:
+    - name: prometheus
+      path: /usr/local/bin
+      mode: "0700"
+    - name: promtool
+      path: /usr/local/bin
+      mode: "0700"
+    - name: prometheus.yml
+      path: /etc/prometheus
+      mode: "0640"
+  loop_control:
+    loop_var: file
+
+- name: "Network | Crowdsec | Prometheus - Create prometheus systemd service"
+  become: true
+  ansible.builtin.template:
+    src: templates/network/intrusion/prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: prometheus
+    group: prometheus
+    mode: "0700"
+  notify:
+    - Reload systemd
+    - Restart prometheus service

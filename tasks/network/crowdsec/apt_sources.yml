@@ -1,0 +1,20 @@
+---
+- name: "Network | Crowdsec | AptSources - Download crowdsec apt repository sources installation script"
+  ansible.builtin.get_url:
+    url: https://install.crowdsec.net
+    dest: /tmp/install-crowdsec.sh
+    mode: "0755"
+  register: download
+
+- name: "Network | Crowdsec | AptSources - Execute crowdsec source installer script"
+  become: true
+  ansible.builtin.shell: |
+    /bin/bash /tmp/install-crowdsec.sh
+  when: download.changed
+  tags:
+    - skip_ansible_lint
+
+- name: "Network | Crowdsec | AptSources - Remove crowdsec source installer script"
+  ansible.builtin.file:
+    path: /tmp/install-crowdsec.sh
+    state: absent

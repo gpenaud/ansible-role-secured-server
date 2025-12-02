@@ -1,0 +1,31 @@
+---
+- name: "Network | Psad - Install psad packages"
+  become: true
+  ansible.builtin.package:
+    name: psad
+    state: present
+
+- name: "Network | Psad - Configure psad configuration file"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/psad/psad.conf
+    regexp: '^({{ line.search }})(\s+)'
+    line: '{{ line.search }}\2{{ line.replace }};'
+    backrefs: true
+  loop:
+    - search: EMAIL_ADDRESSES
+      replace: "{{ secure_server_admin_email }}"
+    - search: HOSTNAME
+      replace: "{{ secure_server_fqdn }}"
+    - search: EXPECT_TCP_OPTIONS
+      replace: 'Y'
+    - search: ENABLE_PSADWATCHD0
+      replace: 'Y'
+    - search: ENABLE_AUTO_IDS
+      replace: 'Y'
+    - search: ENABLE_AUTO_IDS_EMAILS
+      replace: 'Y'
+  loop_control:
+    loop_var: line
+  notify:
+    - Restart psad service
