@@ -1,0 +1,20 @@
+---
+
+- name: "System | Ntp - Install Ntp package"
+  become: true
+  ansible.builtin.apt:
+    name: "{{ package }}"
+    state: present
+  loop:
+    - ntp
+    - ntpdate
+  loop_control:
+    loop_var: package
+
+- name: "System | Ntp - Add Ntp configuration template"
+  become: true
+  ansible.builtin.template:
+    src: "templates/system/ntp/ntp.conf.j2"
+    dest: "/etc/ntp.conf"
+    mode: "0644"
+  notify: "Restart ntp service"

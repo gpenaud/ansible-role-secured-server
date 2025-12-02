@@ -1,0 +1,34 @@
+
+driftfile /var/lib/ntp/ntp.drift
+statistics loopstats peerstats clockstats
+
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+
+restrict -4 default kod notrap nomodify nopeer noquery limited
+restrict -6 default kod notrap nomodify nopeer noquery limited
+restrict 127.0.0.1
+restrict ::1
+restrict source notrap nomodify noquery
+
+# added by {{ lookup('env', 'USER') }} on {{ template_run_date }}
+{% if "fr" in secure_server_ntp_region %}
+server 0.fr.pool.ntp.org iburst 
+server 1.fr.pool.ntp.org iburst
+server 2.fr.pool.ntp.org iburst
+server 3.fr.pool.ntp.org iburst
+{% elif "eu" in secure_server_ntp_region %}
+server 0.europe.pool.ntp.org iburst
+server 1.europe.pool.ntp.org iburst
+server 2.europe.pool.ntp.org iburst
+server 3.europe.pool.ntp.org iburst
+{% elif "us" in secure_server_ntp_region %}
+server 0.us.pool.ntp.org iburst
+server 1.us.pool.ntp.org iburst
+server 2.us.pool.ntp.org iburst
+server 3.us.pool.ntp.org iburst
+{% else %}
+pool pool.ntp.org iburst
+{% endif %}
+
