@@ -1,0 +1,6 @@
+---
+
+secure_server_auditing_clamav_check_number_by_day: 2
+secure_server_auditing_clamav_dirs_to_scan:
+  - /var/www
+  - /var/vmail
