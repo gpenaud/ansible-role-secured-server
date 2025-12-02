@@ -1,0 +1,51 @@
+---
+
+- name: "Auditing | Aide - Include aide-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/auditing/aide.yml
+
+- name: "Auditing | Aide - Install aide packages"
+  become: true
+  ansible.builtin.package:
+    name: "{{ package }}"
+    state: present
+  loop:
+    - aide
+    - aide-common
+  loop_control:
+    loop_var: package
+
+- name: "Auditing | Aide - Configure aide default configuration file"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/default/aide
+    regexp: '^({{ line.search }})'
+    line: '{{ line.replace }}'
+    backrefs: true
+  loop:
+    - search: '#CRON_DAILY_RUN'
+      replace: CRON_DAILY_RUN=yes
+    - search: '#FQDN'
+      replace: 'FQDN={{ secure_server_fqdn }}'
+    - search: '#MAILSUBJ'
+      replace: 'MAILSUBJ="Daily AIDE report for $FQDN'
+    - search: '#MAILTO'
+      replace: 'MAILTO={{ secure_server_admin_email }}'
+    - search: '#QUIETREPORTS'
+      replace: 'QUIETREPORTS=no'
+    - search: 'COPYNEWDB'
+      replace: 'COPYNEWDB=yes'
+  loop_control:
+    loop_var: line
+
+- name: "Auditing | Aide - Add aide custom rules"
+  become: true
+  ansible.builtin.copy:
+    content: "{{ file.patterns | join('\n') }}"
+    dest: "/etc/aide/aide.conf.d/51_CUSTOM_RULE_{{ file.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ secure_server_auditing_aide_custom_rules_files }}"
+  loop_control:
+    loop_var: file

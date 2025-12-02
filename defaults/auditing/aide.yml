@@ -1,0 +1,5 @@
+---
+secure_server_auditing_aide_custom_rules_files:
+  - name: local_user_operator
+    patterns:
+      - "/home/operator FULL"
