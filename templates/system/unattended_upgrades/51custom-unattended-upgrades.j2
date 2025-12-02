@@ -1,0 +1,55 @@
+ 
+{% set uup = secure_server_unattended_upgrade_policy %}
+
+// Enable the update/upgrade script (0=disable)
+APT::Periodic::Enable "{{ uup.periodic_enable | ternary('1', '0') }}";
+
+// Do "apt-get update" automatically every n-days (0=disable)
+APT::Periodic::Update-Package-Lists "{{ uup.periodic_update_package_list }}";
+
+// Do "apt-get upgrade --download-only" every n-days (0=disable)
+APT::Periodic::Download-Upgradeable-Packages "{{ uup.periodic_download_upgradeable_packages }}";
+
+// Do "apt-get autoclean" every n-days (0=disable)
+APT::Periodic::AutocleanInterval "{{ uup.periodic_autocleanInterval }}";
+
+// Send report mail to root
+//     0:  no report             (or null string)
+//     1:  progress report       (actually any string)
+//     2:  + command outputs     (remove -qq, remove 2>/dev/null, add -d)
+//     3:  + trace on    APT::Periodic::Verbose "2";
+APT::Periodic::Unattended-Upgrade "{{ uup.periodic_unattended_upgrade }}";
+
+// Automatically upgrade packages from these
+Unattended-Upgrade::Allowed-Origins {
+  {{ uup.unattended_upgrade_allowed_origins | map("to_json") | join(';\n') | indent(2) + ";" }}
+};
+
+// You can specify your own packages to NOT automatically upgrade here
+Unattended-Upgrade::Package-Blacklist {
+  {{ uup.unattended_upgrade_package_blacklist | map("to_json") | join(',\n') | indent(2) }}
+};
+
+// Run dpkg --force-confold --configure -a if a unclean dpkg state is detected to true to ensure that updates get installed even when the system got interrupted during a previous run
+Unattended-Upgrade::AutoFixInterruptedDpkg "{{ uup.unattended_upgrade_autofix_interrupted_dpkg | lower }}";
+
+//Perform the upgrade when the machine is running because we wont be shutting our server down often
+Unattended-Upgrade::InstallOnShutdown "{{ uup.unattended_upgrade_install_on_shutdown | lower }}";
+
+// Send an email to this address with information about the packages upgraded.
+Unattended-Upgrade::Mail "{{ uup.unattended_upgrade_mail }}";
+
+// Always send an e-mail
+Unattended-Upgrade::MailOnlyOnError "{{ uup.unattended_upgrade_mail_only_on_error | lower }}";
+
+// Remove all unused dependencies after the upgrade has finished
+Unattended-Upgrade::Remove-Unused-Dependencies "{{ uup.unattended_upgrade_remove_unused_dependencies | lower }}";
+
+// Remove any new unused dependencies after the upgrade has finished
+Unattended-Upgrade::Remove-New-Unused-Dependencies "{{ uup.unattended_upgrade_remove_new_unused_dependencies | lower }}";
+
+// Automatically reboot WITHOUT CONFIRMATION if the file /var/run/reboot-required is found after the upgrade.
+Unattended-Upgrade::Automatic-Reboot "{{ uup.unattended_upgrade_automatic_reboot | lower }}";
+
+// Automatically reboot even if users are logged in.
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ uup.unattended_upgrade_automatic_reboot_with_users | lower }}";

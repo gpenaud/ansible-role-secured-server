@@ -1,0 +1,30 @@
+---
+- name: "System | UnattendedUpgrades - Include automatic-updated-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/system/unattended_upgrade.yml
+
+- name: "System | UnattendedUpgrades - Install packages to manage automatic upgrades"
+  become: true
+  ansible.builtin.apt:
+    name: "{{ package }}"
+    state: present
+  loop:
+    - unattended-upgrades
+    - apt-listchanges
+    - apticron
+  loop_control:
+    loop_var: package
+
+- name: "System | UnattendedUpgrades - Add custom unattended upgrades configuration template"
+  become: true
+  ansible.builtin.template:
+    src: "templates/system/unattended_upgrades/51custom-unattended-upgrades.j2"
+    dest: "/etc/apt/apt.conf.d/51custom-unattended-upgrades"
+    mode: "0644"
+
+- name: "System | UnattendedUpgrades - Execute a dry run of unattended-upgrade"
+  become: true
+  ansible.builtin.shell: |-
+    unattended-upgrade -d --dry-run
+  tags:
+    - skip_ansible_lint
