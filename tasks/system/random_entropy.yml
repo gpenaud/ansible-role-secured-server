@@ -1,0 +1,16 @@
+---
+
+- name: "System | RandomEntropy - Install rng-tools package"
+  become: true
+  ansible.builtin.apt:
+    name: rng-tools
+    state: present
+
+- name: "System | RandomEntropy - Add RngTools configuration template"
+  become: true
+  ansible.builtin.template:
+    src: templates/system/random_entropy/rng-tools.j2
+    dest: /etc/default/rng-tools
+    mode: "0644"
+  notify:
+    - Restart rng-tools service
