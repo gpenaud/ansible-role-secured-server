@@ -1,0 +1,104 @@
+---
+# tasks file for gpenaud.secure_server
+
+- name: "Main - Gather OS family"
+  become: true
+  ansible.builtin.setup:
+    gather_subset:
+      - '!all'
+      - '!min'
+      - 'distribution'
+  tags: always
+
+- name: "Main - Include packages task-set"
+  ansible.builtin.import_tasks: packages.yml
+  tags:
+    - packages
+
+- name: "Main - Import SSH configuration task-set"
+  ansible.builtin.import_tasks: ssh.yml
+  tags:
+    - ssh
+
+# System part
+
+- name: "Main - Import user task-set"
+  ansible.builtin.import_tasks: system/user.yml
+  tags:
+    - system
+    - user
+
+- name: "Main - Import Ntp configuration task-set"
+  ansible.builtin.import_tasks: system/ntp.yml
+  tags:
+    - system
+    - ntp
+
+- name: "Main - Import PasswordQuality configuration task-set"
+  ansible.builtin.import_tasks: system/password_quality.yml
+  tags:
+    - system
+    - password_quality
+
+- name: "Main - Import UnattendedUpgrade configuration task-set"
+  ansible.builtin.import_tasks: system/unattended_upgrade.yml
+  tags:
+    - system
+    - unattended_upgrade
+
+- name: "Main - Import RandomEntropy configuration task-set"
+  ansible.builtin.import_tasks: system/random_entropy.yml
+  tags:
+    - system
+    - random_entropy
+
+# Network part
+
+# - name: "Main - Include ufw firewall configuration task-set"
+#   ansible.builtin.import_tasks: network/firewall.yml
+#   tags:
+#     - network
+#     - firewall
+
+- name: "Main - Include intrusion tools configuration task-set"
+  ansible.builtin.import_tasks: network/intrusion.yml
+  tags:
+    - network
+    - intrusion
+
+# Auditing part
+
+- name: "Main - Include aide configuration task-set"
+  ansible.builtin.import_tasks: auditing/aide.yml
+  tags:
+    - auditing
+    - aide
+
+- name: "Main - Include clamav configuration task-set"
+  ansible.builtin.import_tasks: auditing/clamav.yml
+  tags:
+    - auditing
+    - clamav
+
+- name: "Main - Include logwatch configuration task-set"
+  ansible.builtin.import_tasks: auditing/logwatch.yml
+  tags:
+    - auditing
+    - logwatch
+
+- name: "Main - Include lynis configuration task-set"
+  ansible.builtin.import_tasks: auditing/lynis.yml
+  tags:
+    - auditing
+    - lynis
+
+- name: "Main - Include rkhunter configuration task-set"
+  ansible.builtin.import_tasks: auditing/rkhunter.yml
+  tags:
+    - auditing
+    - rkhunter
+
+- name: "Main - Include mail configuration task-set"
+  ansible.builtin.import_tasks: mail.yml
+  tags:
+    - mail
