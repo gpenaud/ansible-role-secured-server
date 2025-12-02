@@ -1,0 +1,35 @@
+---
+- name: "Mail - Install exim4 and related packages for mailing"
+  ansible.builtin.apt:
+    state: present
+    name: "{{ package }}"
+  loop:
+    - exim4
+    - openssl
+    - ca-certificates
+  loop_control:
+    loop_var: package
+  tags:
+    - packages
+
+- name: "Mail - Configure exim4"
+  tags: wip
+  ansible.builtin.lineinfile:
+    path: /etc/exim4/update-exim4.conf.conf
+    regexp: "^({{ line.search }})"
+    line: "{{ line.replace }}"
+    backrefs: true
+  loop:
+    - search: dc_smarthost
+      replace: dc_smarthost='smtp.gmail.com::465'
+  loop_control:
+    loop_var: line
+
+- name: "Mail - Configure exim4 with valid gmail address and password"
+  tags: wip
+  ansible.builtin.template:
+    src: "templates/mail/exim4.passwd.client.j2"
+    dest: "/etc/exim4/passwd.client"
+    owner: "root"
+    group: "Debian-exim"
+    mode: "0640"
