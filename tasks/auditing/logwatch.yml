@@ -1,0 +1,18 @@
+---
+
+- name: "Auditing | Logwatch - Include logwatch-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/auditing/logwatch.yml
+
+- name: "Auditing | Logwatch - Install logwatch packages"
+  become: true
+  ansible.builtin.package:
+    name: logwatch
+    state: present
+
+- name: "Auditing | Logwatch - Configure logwatch cron file"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/cron.daily/00logwatch
+    regexp: '^/usr/sbin/logwatch'
+    line: '/usr/sbin/logwatch --output mail --format html --mailto {{ secure_server_admin_email }} --range yesterday --service all'
