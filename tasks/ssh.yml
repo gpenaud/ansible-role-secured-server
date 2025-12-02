@@ -1,0 +1,68 @@
+---
+
+- name: "SSH - Retries remotely the users from sshusers group"
+  ansible.builtin.getent:
+    fail_key: false
+    database: group
+    key: "sshusers"
+    split: ':'
+
+- name: "SSH - Register the states of remote ssh allowed users"
+  ansible.builtin.set_fact:
+    actual_ssh_allowed_users: "{{ (getent_group.sshusers | select())[2:3] | map('split', ',') | first | default([]) }}"
+
+- name: "SSH - Manage deletion / creation of sshusers group members"
+  when: actual_ssh_allowed_users != secure_server_ssh_allowed_users
+  block:
+    - name: "SSH - Create a sshusers groups to simply allow users to SSH into server"
+      become: true
+      ansible.builtin.group:
+        state: absent
+        name: "sshusers"
+
+    - name: "SSH - Create a sshusers groups to simply allow users to SSH into server"
+      become: true
+      ansible.builtin.group:
+        state: present
+        name: "sshusers"
+
+    - name: "SSH - Add user accounts to sshusers group"
+      become: true
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: "sshusers"
+        append: true
+      loop: "{{ secure_server_ssh_allowed_users }}"
+      loop_control:
+        loop_var: user
+
+- name: "SSH - Create ssh directory"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "/etc/ssh"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+- name: "SSH - Secure SSH configuration"
+  become: true
+  ansible.builtin.template:
+    src: "templates/ssh/sshd_config.j2"
+    dest: "/etc/ssh/sshd_config"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify:
+    - Restart ssh service
+
+- name: "SSH - Remove short moduli"
+  become: true
+  ansible.builtin.shell:
+    cmd: |-
+      awk '$5 >= 3071' /etc/ssh/moduli
+      touch /etc/ssh/moduli_updated_by_ansible.txt
+  args:
+    creates: /etc/ssh/moduli_updated_by_ansible.txt
+  notify:
+    - Restart ssh service
