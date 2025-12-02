@@ -1,0 +1,10 @@
+---
+- name: "Molecule - Test convergence playbook"
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: "Molecule - Include gpenaud.secure_server role"
+      ansible.builtin.include_role:
+        name: gpenaud.secure_server
+      tags: always

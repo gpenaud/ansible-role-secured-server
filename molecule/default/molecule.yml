@@ -1,0 +1,56 @@
+# ---
+# scenario:
+#   name: default
+
+# driver:
+#   name: docker
+
+# provisioner:
+#   name: ansible
+#   env:
+#     ANSIBLE_ROLES_PATH: ../../../
+#   config_options:
+#     defaults:
+#       remote_tmp: /tmp/ansible-$USER
+
+# platforms:
+#   # yaml anchor for systemd
+#   - &with-systemd
+#     name: ubuntu-24-04
+#     image: geerlingguy/docker-ubuntu2404-ansible
+#     cgroupns_mode: host
+#     command: /usr/sbin/init
+#     privileged: true
+#     volumes:
+#       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+#     tmpfs:
+#       - /run
+#       - /tmp
+#   # - name: ubuntu-22-04
+#   #   image: geerlingguy/docker-ubuntu2204-ansible
+#   #   <<: *with-systemd
+
+#   # # ubuntu
+#   # - name: rockylinux-9
+#   #   image: geerlingguy/docker-rockylinux9-ansible
+#   #   pre_build_image: true
+#   # - name: rockylinux-10
+#   #   image: geerlingguy/docker-rockylinux10-ansible
+#   #   pre_build_image: true
+#   # ubuntu
+
+
+---
+dependency:
+  name: galaxy
+driver:
+  name: default
+platforms:
+  - name: secure-server
+    image: ubuntu_ansible
+    memory: 2048
+    cpus: 2
+provisioner:
+  name: ansible
+verifier:
+  name: ansible
