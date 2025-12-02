@@ -1,0 +1,22 @@
+---
+secure_server_ufw_custom_applications:
+  - name: PlexMediaServer
+    title: "Plex Media Server"
+    description: "This opens up PlexMediaServer for http (32400), upnp, and autodiscovery"
+    ports:
+      - number: 32469
+        protocol: tcp
+      - number: 32413
+        protocol: udp
+      - number: 1900
+        protocol: udp
+      - number: 32400
+        protocol: tcp
+      - number: 32412
+        protocol: udp
+      - number: 32410
+        protocol: udp
+      - number: 32414
+        protocol: udp
+      - number: 32400
+        protocol: udp

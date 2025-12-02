@@ -1,0 +1,6 @@
+{% for application in secure_server_ufw_custom_applications %}
+[{{ application.name }}]
+title={{ application.title }}
+description={{ application.description }}.
+ports={% for port in application.ports %}{{ port.number }}/{{ port.protocol }}{{ "|" if not loop.last }}{% endfor %}
+{% endfor %}
