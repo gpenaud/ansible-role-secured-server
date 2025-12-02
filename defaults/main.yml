@@ -1,0 +1,20 @@
+---
+# defaults file for gpenaud.secure_server
+
+secure_server_user: operator
+secure_server_group: operator
+secure_server_admin_email: ops.gpenaud@gmail.com
+secure_server_fqdn: ubuntu-24-04
+
+secure_server_ssh_allowed_users:
+  - games
+  - www-data
+secure_server_su_allowed_users:
+  - games
+  - www-data
+secure_server_sudo_allowed_users:
+  - games
+  - www-data
+
+# possible regions: fr,eu,us (default: global)
+secure_server_ntp_region: fr
