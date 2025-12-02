@@ -1,0 +1,95 @@
+---
+
+- name: "System | User - Create server user"
+  become: true
+  ansible.builtin.user:
+    state: present
+    name: "{{ secure_server_user }}"
+    password: "{{ secure_server_user | password_hash('sha512', 'camembert') }}"
+    shell: /bin/bash
+    group: sudo
+
+- name: "System | User - Create server group"
+  become: true
+  ansible.builtin.group:
+    state: present
+    name: "{{ secure_server_group }}"
+
+- name: "System | User - Retries remotely the users from suusers group"
+  ansible.builtin.getent:
+    fail_key: false
+    database: group
+    key: "suusers"
+    split: ':'
+
+- name: "System | User - Register the states of remote su allowed users"
+  ansible.builtin.set_fact:
+    actual_su_allowed_users: "{{ (getent_group.suusers | select())[2:3] | map('split', ',') | first | default([]) }}"
+
+- name: "System | User - Manage deletion / creation of suusers group members"
+  when: actual_su_allowed_users != secure_server_su_allowed_users
+  block:
+    - name: "System | User - Create a suusers groups to simply allow users to su into server"
+      become: true
+      ansible.builtin.group:
+        state: absent
+        name: "suusers"
+
+    - name: "System | User - Create a suusers groups to simply allow users to su into server"
+      become: true
+      ansible.builtin.group:
+        state: present
+        name: "suusers"
+
+    - name: "System | User - Add user accounts to suusers group"
+      become: true
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: "suusers"
+        append: true
+      loop: "{{ secure_server_su_allowed_users }}"
+      loop_control:
+        loop_var: user
+
+- name: "System | User - Retries remotely the users from sudousers group"
+  ansible.builtin.getent:
+    fail_key: false
+    database: group
+    key: "sudousers"
+    split: ':'
+
+- name: "System | User - Register the states of remote sudo allowed users"
+  ansible.builtin.set_fact:
+    actual_sudo_allowed_users: "{{ (getent_group.sudousers | select())[2:3] | map('split', ',') | first | default([]) }}"
+
+- name: "System | User - Manage deletion / creation of sudousers group members"
+  when: actual_sudo_allowed_users != secure_server_sudo_allowed_users
+  block:
+    - name: "System | User - Create a sudousers groups to simply allow users to sudo into server"
+      become: true
+      ansible.builtin.group:
+        state: absent
+        name: "sudousers"
+
+    - name: "System | User - Create a sudousers groups to simply allow users to sudo into server"
+      become: true
+      ansible.builtin.group:
+        state: present
+        name: "sudousers"
+
+    - name: "System | User - Add user accounts to sudousers group"
+      become: true
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: "sudousers"
+        append: true
+      loop: "{{ secure_server_sudo_allowed_users }}"
+      loop_control:
+        loop_var: user
+
+- name: "System | User - Add sudousers group as sudoers"
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/sudoers
+    block: |-
+      %sudousers   ALL=(ALL:ALL) ALL
