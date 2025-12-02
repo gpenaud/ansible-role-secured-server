@@ -1,0 +1,62 @@
+---
+
+- name: "Auditing | Rkhunter - Include rkhunter-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/auditing/rkhunter.yml
+  tags:
+    - auditing
+    - rkhunter
+
+- name: "Auditing | Rkhunter - Install rkhunter packages"
+  become: true
+  ansible.builtin.package:
+    name: rkhunter
+    state: present
+
+- name: "Auditing | Rkhunter - Configure rkhunter configuration file"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/rkhunter.conf
+    regexp: '^({{ line.search }})'
+    line: '{{ line.replace }}'
+  loop:
+    - search: 'UPDATE_MIRRORS'
+      replace: 'UPDATE_MIRRORS={{ secure_server_auditing_rkhunter_conf.update_mirrors }}'
+    - search: 'MIRRORS_MODE'
+      replace: 'MIRRORS_MODE={{ secure_server_auditing_rkhunter_conf.mirrors_mode }}'
+    - search: 'MAIL-ON-WARNING'
+      replace: 'MAIL-ON-WARNING={{ secure_server_auditing_rkhunter_conf.mail_on_warning }}'
+    - search: 'COPY_LOG_ON_ERROR'
+      replace: 'COPY_LOG_ON_ERROR={{ secure_server_auditing_rkhunter_conf.copy_log_on_error }}'
+    - search: 'PKGMGR'
+      replace: 'PKGMGR={{ secure_server_auditing_rkhunter_conf.pkgmgr }}'
+    - search: 'PHALANX2_DIRTEST'
+      replace: 'PHALANX2_DIRTEST={{ secure_server_auditing_rkhunter_conf.phalanx2_dirtest }}'
+    - search: 'WEB_CMD'
+      replace: 'WEB_CMD={{ secure_server_auditing_rkhunter_conf.web_cmd }}'
+    - search: 'USE_LOCKING'
+      replace: 'USE_LOCKING={{ secure_server_auditing_rkhunter_conf.use_locking }}'
+    - search: 'SHOW_SUMMARY_WARNINGS_NUMBER'
+      replace: 'SHOW_SUMMARY_WARNINGS_NUMBER={{ secure_server_auditing_rkhunter_conf.show_summary_warnings_number }}'
+  loop_control:
+    loop_var: line
+
+- name: "Network | Rkhunter - Test rkhunter configuration file"
+  become: true
+  ansible.builtin.shell: |-
+    /usr/bin/rkhunter -C
+  tags:
+    - skip_ansible_lint
+
+# NOTE: those commands can lock rkhunter database. To unlock, please enter: "sudo /usr/bin/rkhunter --unlock"
+- name: "Network | Rkhunter - Update rkhunter and its database"
+  become: true
+  ansible.builtin.shell: "/usr/bin/rkhunter --{{ command }}"
+  loop:
+    - versioncheck
+    - update
+    - propupd
+  loop_control:
+    loop_var: command
+  tags:
+    - skip_ansible_lint

@@ -1,0 +1,11 @@
+---
+secure_server_auditing_rkhunter_conf:
+  update_mirrors: 1
+  mirrors_mode: 0
+  mail_on_warning: root
+  copy_log_on_error: 1
+  pkgmgr: DPKG
+  phalanx2_dirtest: 1
+  web_cmd: ""
+  use_locking: 1
+  show_summary_warnings_number: 1
