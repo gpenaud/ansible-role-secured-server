@@ -1,0 +1,27 @@
+---
+
+- name: "Packages - Updates all debian-like packages to their latest versions"
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: "dist"
+  tags:
+    - packages
+
+- name: "Packages - Install complementary packages for general purposes"
+  become: true
+  ansible.builtin.apt:
+    state: present
+    name: "{{ package }}"
+  loop:
+    - man
+    - vim
+    - ssh
+    - git
+    - iproute2
+    - curl
+    - netcat-openbsd
+  loop_control:
+    loop_var: package
+  tags:
+    - packages
