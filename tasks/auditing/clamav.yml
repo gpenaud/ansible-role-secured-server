@@ -1,0 +1,36 @@
+---
+
+- name: "Auditing | Clamav - Include clamav-related variables"
+  ansible.builtin.include_vars:
+    file: defaults/auditing/clamav.yml
+
+- name: "Auditing | Clamav - Install clamav packages"
+  become: true
+  ansible.builtin.package:
+    name: "{{ package }}"
+    state: present
+  loop:
+    - clamav
+    - clamav-freshclam
+    - clamav-daemon
+  loop_control:
+    loop_var: package
+
+- name: "Auditing | Clamav - Configure clamav configuration file"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/clamav/freshclam.conf
+    regexp: '^({{ line.search }})'
+    line: '{{ line.replace }}'
+  loop:
+    - search: 'Checks'
+      replace: Checks {{ secure_server_auditing_clamav_check_number_by_day }}
+  loop_control:
+    loop_var: line
+
+- name: "Auditing | Clamav - Add custom clamav daily cron template"
+  become: true
+  ansible.builtin.template:
+    src: "templates/auditing/clamscan_daily.sh.j2"
+    dest: "/root/clamscan_daily.sh"
+    mode: "0755"
