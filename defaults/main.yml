@@ -3,6 +3,9 @@
 
 secure_server_user: operator
 secure_server_group: operator
+# Mot de passe du compte, celui que sudo demande. Par défaut le NOM du compte,
+# comme avant : à surcharger sur toute machine exposée.
+secure_server_user_password: "{{ secure_server_user }}"
 secure_server_admin_email: ops.gpenaud@gmail.com
 secure_server_fqdn: ubuntu-24-04
 

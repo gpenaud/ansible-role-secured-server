@@ -5,7 +5,7 @@
   ansible.builtin.user:
     state: present
     name: "{{ secure_server_user }}"
-    password: "{{ secure_server_user | password_hash('sha512', 'camembert') }}"
+    password: "{{ secure_server_user_password | password_hash('sha512', 'camembert') }}"
     shell: /bin/bash
     group: sudo
 
