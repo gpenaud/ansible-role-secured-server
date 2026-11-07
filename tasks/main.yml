@@ -30,6 +30,14 @@
   ansible.builtin.import_tasks: ssh.yml
   tags: [ssh]
 
+# Les gestionnaires ne s executent qu en fin de jeu, et PAS si une tache
+# echoue avant : sur infra01, le 7 novembre 2026, sshd a tourne une heure avec
+# l ancienne configuration (mots de passe acceptes) parce que le pare-feu avait
+# echoue apres. Ce qui touche a la porte d entree est applique tout de suite.
+- name: "SSH - Appliquer sans attendre la fin du jeu"
+  ansible.builtin.meta: flush_handlers
+  tags: [ssh, always]
+
 - name: "Heure"
   ansible.builtin.import_tasks: time.yml
   tags: [time, ntp, system]
