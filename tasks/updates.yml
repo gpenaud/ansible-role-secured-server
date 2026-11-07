@@ -1,0 +1,35 @@
+---
+# unattended-upgrades : les mises a jour de securite et de distribution
+# s installent seules, et la machine redemarre pour un noyau a l heure dite.
+# Deux fichiers : 20auto-upgrades dit quand, 51secured-server dit quoi.
+
+- name: "Mises a jour - Paquets"
+  become: true
+  ansible.builtin.apt:
+    name: [unattended-upgrades, apt-listchanges]
+    state: present
+
+- name: "Mises a jour - Periodicite"
+  become: true
+  ansible.builtin.template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "Mises a jour - Politique"
+  become: true
+  ansible.builtin.template:
+    src: 51secured-server.j2
+    dest: /etc/apt/apt.conf.d/51secured-server
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "Mises a jour - Service actif"
+  become: true
+  ansible.builtin.systemd_service:
+    name: unattended-upgrades
+    enabled: true
+    state: started

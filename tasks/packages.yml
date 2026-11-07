@@ -1,27 +1,20 @@
 ---
+# Un seul appel apt par intention : une liste, pas une boucle qui relance apt
+# par paquet.
 
-- name: "Packages - Updates all debian-like packages to their latest versions"
+- name: "Paquets - Mise a niveau complete"
   become: true
   ansible.builtin.apt:
     update_cache: true
-    upgrade: "dist"
-  tags:
-    - packages
+    cache_valid_time: 3600
+    upgrade: dist
+    autoremove: true
+  when: secure_server_upgrade_packages | bool
 
-- name: "Packages - Install complementary packages for general purposes"
+- name: "Paquets - Outils de base"
   become: true
   ansible.builtin.apt:
+    name: "{{ secure_server_packages }}"
     state: present
-    name: "{{ package }}"
-  loop:
-    - man
-    - vim
-    - ssh
-    - git
-    - iproute2
-    - curl
-    - netcat-openbsd
-  loop_control:
-    loop_var: package
-  tags:
-    - packages
+    update_cache: true
+    cache_valid_time: 3600

@@ -1,0 +1,22 @@
+// {{ ansible_managed }} — gpenaud.secured-server
+{% set u = secure_server_unattended_upgrades %}
+Unattended-Upgrade::Allowed-Origins {
+{% for origin in u.origins %}
+  "{{ origin }}";
+{% endfor %}
+};
+Unattended-Upgrade::Package-Blacklist {
+{% for p in u.blacklist %}
+  "{{ p }}";
+{% endfor %}
+};
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "{{ u.remove_unused_dependencies | lower }}";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "{{ u.remove_unused_dependencies | lower }}";
+Unattended-Upgrade::Automatic-Reboot "{{ u.automatic_reboot | lower }}";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ u.automatic_reboot_time }}";
+Unattended-Upgrade::Mail "root";
+Unattended-Upgrade::MailReport "{{ 'only-on-error' if u.mail_only_on_error else 'on-change' }}";

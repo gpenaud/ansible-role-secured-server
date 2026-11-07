@@ -1,0 +1,8 @@
+---
+# Le courrier sortant de la machine (unattended-upgrades, AIDE, logwatch) par un
+# relais SMTP authentifie. VIDE, rien ne part : tout reste en local dans la
+# boite de root. Le mot de passe n a pas de defaut et ne doit JAMAIS etre ecrit
+# dans ce depot : il vient de l inventaire ou de l environnement.
+secure_server_mail_smarthost: ""           # ex. smtp.gmail.com::465
+secure_server_mail_user: ""                # ex. ops.gpenaud@gmail.com
+# secure_server_mail_password:             # a fournir avec le relais

@@ -1,0 +1,83 @@
+---
+# Ce que le role ne veut plus voir : les comptes par defaut des images, et ce
+# que ses anciennes versions avaient pose (psad et son journal de chaque paquet,
+# un Prometheus local, rng-tools, le groupe suusers, le bloc sudoers). Chaque
+# tache est sans effet sur une machine propre.
+
+- name: "Nettoyage - Comptes par defaut des images cloud (sauf celui d Ansible)"
+  become: true
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: absent
+    remove: true
+  loop: "{{ secure_server_remove_default_users }}"
+  when: item != ansible_user_id and item != (ansible_user | default(''))
+
+- name: "Nettoyage - Anciens paquets du role"
+  become: true
+  ansible.builtin.apt:
+    name: [psad, rng-tools, apticron]
+    state: absent
+    purge: true
+    autoremove: true
+
+- name: "Nettoyage - Journal de chaque paquet pour psad"
+  become: true
+  ansible.builtin.blockinfile:
+    path: "/etc/ufw/{{ item }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+    state: absent
+  loop: [before.rules, before6.rules]
+  notify: Reload ufw
+
+- name: "Nettoyage - Le Prometheus local de l ancien role"
+  become: true
+  ansible.builtin.systemd_service:
+    name: prometheus
+    state: stopped
+    enabled: false
+  failed_when: false
+  register: old_prometheus
+
+- name: "Nettoyage - Ses fichiers"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/prometheus.service
+    - /usr/local/bin/prometheus
+    - /usr/local/bin/promtool
+    - /etc/prometheus
+    - /var/lib/prometheus
+  notify: Reload systemd
+
+- name: "Nettoyage - Compte prometheus"
+  become: true
+  ansible.builtin.user:
+    name: prometheus
+    state: absent
+    remove: true
+
+- name: "Nettoyage - Groupe suusers (jamais relie a pam_wheel)"
+  become: true
+  ansible.builtin.group:
+    name: suusers
+    state: absent
+
+- name: "Nettoyage - Bloc sudoers de l ancien role (remplace par /etc/sudoers.d)"
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/sudoers
+    state: absent
+    validate: /usr/sbin/visudo -cf %s
+
+- name: "Nettoyage - Marqueur et script de l ancien role"
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/ssh/moduli_updated_by_ansible.txt
+    - /root/clamscan_daily.sh
+    - /etc/apt/apt.conf.d/51custom-unattended-upgrades

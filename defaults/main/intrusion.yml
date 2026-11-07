@@ -1,0 +1,9 @@
+---
+# CrowdSec : detection sur les journaux (sshd, systeme) et bannissement par le
+# bouncer iptables. Ses metriques restent sur la boucle locale, a lire par le
+# collecteur de la machine ; plus de serveur Prometheus installe pour lui.
+secure_server_crowdsec: true
+secure_server_crowdsec_collections: [crowdsecurity/linux, crowdsecurity/sshd]
+# La « suite » du depot packagecloud : la version en cours de la distribution,
+# sauf quand le depot ne l a pas encore ; les paquets sont les memes.
+secure_server_crowdsec_suite: "{{ 'bookworm' if ansible_distribution_release == 'trixie' else ansible_distribution_release }}"

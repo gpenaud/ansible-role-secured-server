@@ -1,0 +1,132 @@
+---
+# Ce qui regarde la machine apres coup : l integrite des fichiers (AIDE), un
+# audit chiffre (Lynis), et, si on les veut, rkhunter, ClamAV, logwatch.
+
+# ── AIDE ──────────────────────────────────────────────────────────────────────
+- name: "AIDE - Paquets"
+  become: true
+  ansible.builtin.apt:
+    name: [aide, aide-common]
+    state: present
+  when: secure_server_aide | bool
+
+- name: "AIDE - Controle quotidien, compte rendu par courrier"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/default/aide
+    regexp: '^#?{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+  loop:
+    - { key: CRON_DAILY_RUN, value: "yes" }
+    - { key: FQDN, value: "{{ secure_server_fqdn }}" }
+    - { key: MAILTO, value: "{{ secure_server_admin_email }}" }
+    - { key: QUIETREPORTS, value: "yes" }
+    - { key: COPYNEWDB, value: "yes" }
+  loop_control:
+    label: "{{ item.key }}"
+  when: secure_server_aide | bool
+
+- name: "AIDE - Regles propres a la machine"
+  become: true
+  ansible.builtin.copy:
+    content: "{{ item.patterns | join('\n') }}\n"
+    dest: "/etc/aide/aide.conf.d/51_{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ secure_server_aide_rules }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: secure_server_aide | bool
+
+- name: "AIDE - Base initiale (une fois, long)"
+  become: true
+  ansible.builtin.command:
+    cmd: aideinit -y -f
+    creates: /var/lib/aide/aide.db
+  when: secure_server_aide | bool
+
+# ── Lynis ─────────────────────────────────────────────────────────────────────
+- name: "Lynis - Paquet"
+  become: true
+  ansible.builtin.apt:
+    name: lynis
+    state: present
+  when: secure_server_lynis | bool
+
+- name: "Lynis - Audit hebdomadaire"
+  become: true
+  ansible.builtin.cron:
+    name: "lynis audit"
+    cron_file: secured-server-lynis
+    user: root
+    weekday: "0"
+    hour: "4"
+    minute: "30"
+    job: "/usr/sbin/lynis audit system --cronjob --quiet > /dev/null"
+  when: secure_server_lynis | bool
+
+# ── rkhunter (optionnel) ──────────────────────────────────────────────────────
+- name: "rkhunter - Paquet"
+  become: true
+  ansible.builtin.apt:
+    name: rkhunter
+    state: present
+  when: secure_server_rkhunter | bool
+
+- name: "rkhunter - Configuration"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/rkhunter.conf
+    regexp: '^#?{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+  loop:
+    - { key: UPDATE_MIRRORS, value: "1" }
+    - { key: MIRRORS_MODE, value: "0" }
+    - { key: WEB_CMD, value: '""' }
+    - { key: MAIL-ON-WARNING, value: "{{ secure_server_admin_email }}" }
+  loop_control:
+    label: "{{ item.key }}"
+  when: secure_server_rkhunter | bool
+
+- name: "rkhunter - Base de reference (une fois : la refaire a chaque passage annulerait la detection)"
+  become: true
+  ansible.builtin.command:
+    cmd: rkhunter --propupd
+    creates: /var/lib/rkhunter/db/rkhunter.dat
+  when: secure_server_rkhunter | bool
+
+# ── ClamAV (optionnel) ────────────────────────────────────────────────────────
+- name: "ClamAV - Paquets"
+  become: true
+  ansible.builtin.apt:
+    name: [clamav, clamav-freshclam]
+    state: present
+  when: secure_server_clamav | bool
+
+- name: "ClamAV - Balayage quotidien des dossiers choisis"
+  become: true
+  ansible.builtin.cron:
+    name: "clamscan"
+    cron_file: secured-server-clamav
+    user: root
+    hour: "3"
+    minute: "15"
+    job: "/usr/bin/clamscan -ri --no-summary {{ secure_server_clamav_dirs | join(' ') }} | mail -s 'clamscan {{ secure_server_fqdn }}' {{ secure_server_admin_email }}"
+  when: secure_server_clamav | bool
+
+# ── logwatch (optionnel, suit le courrier) ────────────────────────────────────
+- name: "logwatch - Paquet"
+  become: true
+  ansible.builtin.apt:
+    name: logwatch
+    state: present
+  when: secure_server_logwatch | bool
+
+- name: "logwatch - Resume quotidien par courrier"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/cron.daily/00logwatch
+    regexp: '^/usr/sbin/logwatch'
+    line: '/usr/sbin/logwatch --output mail --format html --mailto {{ secure_server_admin_email }} --range yesterday --service all'
+  when: secure_server_logwatch | bool

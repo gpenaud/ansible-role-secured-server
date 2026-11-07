@@ -1,39 +1,61 @@
 ---
-- name: Create
+- name: Create Incus VM
   hosts: localhost
-  connection: local
   gather_facts: false
-  no_log: "{{ molecule_no_log }}"
-  vars:
-    default_private_key_path: "{{ lookup('env', 'HOME') }}/.ssh/ansible_id_ed25519"
-    default_public_key_path: "{{ default_private_key_path }}.pub"
-    default_ssh_user: ansible
-    default_ssh_port: 22
-    default_memory: 1024
-    default_cpus: 1
-
-    platform_defaults:
-      private_key_path: "{{ default_private_key_path }}"
-      public_key_path: "{{ default_public_key_path }}"
-      ssh_user: "{{ default_ssh_user }}"
-      ssh_port: "{{ default_ssh_port }}"
-      image_name: ""
-      name: ""
-      memory: "{{ default_memory }}"
-      cpus: "{{ default_cpus }}"
-
-    # Merging defaults into a list of dicts is, it turns out, not straightforward
-    platforms: >-
-      {{ [platform_defaults | dict2items]
-        | product(molecule_yml.platforms | map('dict2items') | list)
-        | map('flatten', levels=1)
-        | list
-        | map('items2dict')
-        | list }}
-
   tasks:
-    - name: Create
-      ansible.builtin.include_tasks: incus-create.yml
-      loop: '{{ platforms }}'
-      loop_control:
-        loop_var: platform
+    - name: Write cloud-init user-data
+      ansible.builtin.copy:
+        content: |
+          #cloud-config
+          users:
+            - name: ubuntu
+              shell: /bin/bash
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              ssh_authorized_keys:
+                - {{ lookup('file', '~/.ssh/work.pub') }}
+          # Le pont Incus ne route pas l IPv6 sortant, et les miroirs Ubuntu se
+          # resolvent d abord en IPv6 : apt n atteindrait rien. IPv4 force.
+          write_files:
+            - path: /etc/apt/apt.conf.d/99force-ipv4
+              content: 'Acquire::ForceIPv4 "true";'
+          package_update: true
+          packages:
+            - openssh-server
+          runcmd:
+            - systemctl enable ssh
+        dest: /tmp/secured-server-user-data.yaml
+
+    - name: Create VM with cloud-init config
+      ansible.builtin.shell:
+        cmd: >
+          incus launch images:ubuntu/24.04/cloud secured-server
+          --config user.user-data="$(cat /tmp/secured-server-user-data.yaml)"
+      register: incus_create
+      changed_when: incus_create.rc == 0
+
+    - name: Wait for VM to start
+      ansible.builtin.command:
+        cmd: incus exec secured-server -- cloud-init status --wait
+      retries: 15
+      delay: 5
+      register: result
+      until: result.rc == 0
+
+    - name: Get IPv6 address
+      ansible.builtin.command:
+        cmd: incus list secured-server -f json
+      register: incus_list
+
+    - name: Set IPv6 fact
+      ansible.builtin.set_fact:
+        instance_ipv6: "{{ incus_list.stdout | from_json | json_query('[0].state.network.eth0.addresses[?family==`inet6` && scope==`global`].address | [0]') }}"
+
+    - name: Write instance config
+      ansible.builtin.copy:
+        content: |
+          - address: {{ instance_ipv6 }}
+            identity_file: ~/.ssh/work
+            instance: secured-server
+            port: 22
+            user: ubuntu
+        dest: "{{ molecule_instance_config }}"

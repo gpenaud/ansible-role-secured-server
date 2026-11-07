@@ -1,0 +1,27 @@
+---
+# Mises a jour automatiques : securite et distribution, redemarrage pour les
+# noyaux a l heure dite. Le courrier de compte rendu ne part que si le relais
+# est configure (secure_server_mail_*).
+secure_server_unattended_upgrades:
+  origins:
+    - "${distro_id}:${distro_codename}"
+    - "${distro_id}:${distro_codename}-security"
+    - "${distro_id}ESMApps:${distro_codename}-apps-security"
+    - "${distro_id}ESM:${distro_codename}-infra-security"
+  blacklist: []
+  remove_unused_dependencies: true
+  automatic_reboot: true
+  automatic_reboot_time: "05:30"
+  mail_only_on_error: true
+
+# L heure par systemd-timesyncd, deja present : pas de demon NTP complet.
+# fr, eu, us, ou vide pour pool.ntp.org.
+secure_server_ntp_region: fr
+
+# Qualite des mots de passe (pam_pwquality) pour ce qui se tape encore : sudo.
+secure_server_password_policy:
+  minlen: 12
+  minclass: 3     # au moins trois classes de caracteres
+  maxrepeat: 3
+  difok: 3
+  gecoscheck: true

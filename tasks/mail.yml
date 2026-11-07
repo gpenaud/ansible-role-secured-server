@@ -1,35 +1,56 @@
 ---
-- name: "Mail - Install exim4 and related packages for mailing"
-  ansible.builtin.apt:
-    state: present
-    name: "{{ package }}"
-  loop:
-    - exim4
-    - openssl
-    - ca-certificates
-  loop_control:
-    loop_var: package
-  tags:
-    - packages
+# Le courrier sortant par un relais authentifie, seulement si l inventaire le
+# donne. Le mot de passe du relais vient de secure_server_mail_password, jamais
+# d un gabarit du depot.
 
-- name: "Mail - Configure exim4"
-  tags: wip
+- name: "Courrier - Le relais demande un mot de passe"
+  ansible.builtin.assert:
+    that: secure_server_mail_password is defined and secure_server_mail_password | length > 0
+    fail_msg: "secured-server: secure_server_mail_smarthost is set but secure_server_mail_password is empty"
+  when: secure_server_mail_smarthost | length > 0
+
+- name: "Courrier - exim4"
+  become: true
+  ansible.builtin.apt:
+    name: [exim4-daemon-light, ca-certificates]
+    state: present
+  when: secure_server_mail_smarthost | length > 0
+
+- name: "Courrier - Relais"
+  become: true
   ansible.builtin.lineinfile:
     path: /etc/exim4/update-exim4.conf.conf
-    regexp: "^({{ line.search }})"
-    line: "{{ line.replace }}"
-    backrefs: true
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}='{{ item.value }}'"
   loop:
-    - search: dc_smarthost
-      replace: dc_smarthost='smtp.gmail.com::465'
+    - { key: dc_eximconfig_configtype, value: satellite }
+    - { key: dc_smarthost, value: "{{ secure_server_mail_smarthost }}" }
+    - { key: dc_readhost, value: "{{ secure_server_fqdn }}" }
+    - { key: dc_hide_mailname, value: "true" }
   loop_control:
-    loop_var: line
+    label: "{{ item.key }}"
+  notify: Update exim4
+  when: secure_server_mail_smarthost | length > 0
 
-- name: "Mail - Configure exim4 with valid gmail address and password"
-  tags: wip
+- name: "Courrier - Identifiants du relais"
+  become: true
   ansible.builtin.template:
-    src: "templates/mail/exim4.passwd.client.j2"
-    dest: "/etc/exim4/passwd.client"
-    owner: "root"
-    group: "Debian-exim"
+    src: exim4-passwd-client.j2
+    dest: /etc/exim4/passwd.client
+    owner: root
+    group: Debian-exim
     mode: "0640"
+  no_log: true
+  notify: Update exim4
+  when: secure_server_mail_smarthost | length > 0
+
+- name: "Courrier - Ce qui est pour root va a l administrateur"
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/aliases
+    regexp: '^root:'
+    line: 'root: {{ secure_server_admin_email }}'
+    create: true
+    mode: "0644"
+  notify: Update aliases
+  when: secure_server_mail_smarthost | length > 0

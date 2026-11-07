@@ -1,0 +1,72 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: "sshd : configuration effective"
+      ansible.builtin.command: sshd -T
+      register: sshd
+      changed_when: false
+
+    - name: "sshd : cles seules, pas de root, groupe autorise"
+      ansible.builtin.assert:
+        that:
+          - "'passwordauthentication no' in sshd.stdout"
+          - "'permitrootlogin no' in sshd.stdout"
+          - "'allowgroups sshusers' in sshd.stdout"
+          - "'allowtcpforwarding no' in sshd.stdout"
+
+    - name: "ufw : actif, refus par defaut, 22 et 443 ouverts"
+      ansible.builtin.command: ufw status verbose
+      register: ufw
+      changed_when: false
+
+    - name: "ufw : assertions"
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in ufw.stdout"
+          - "'deny (incoming)' in ufw.stdout"
+          - "'22/tcp' in ufw.stdout"
+          - "'443/tcp' in ufw.stdout"
+          - "'6443' not in ufw.stdout"
+
+    - name: "sudo : le groupe sudousers, par sudoers.d"
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/secured-server
+      register: sudoers
+
+    - name: "groupes : membres exacts"
+      ansible.builtin.getent:
+        database: group
+        key: sudousers
+        split: ":"
+
+    - name: "sudo et groupes : assertions"
+      ansible.builtin.assert:
+        that:
+          - sudoers.stat.exists
+          - "getent_group.sudousers[2] == 'operator,ubuntu'"
+
+    - name: "crowdsec : services actifs"
+      ansible.builtin.service_facts:
+
+    - name: "crowdsec : assertions"
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['crowdsec.service'].state == 'running'
+          - ansible_facts.services['crowdsec-firewall-bouncer.service'].state == 'running'
+          - ansible_facts.services['systemd-timesyncd.service'].state == 'running'
+
+    - name: "anciens restes : absents"
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: [/usr/local/bin/prometheus, /etc/ssh/moduli_updated_by_ansible.txt]
+      register: leftovers
+
+    - name: "anciens restes : assertions"
+      ansible.builtin.assert:
+        that: not item.stat.exists
+      loop: "{{ leftovers.results }}"
+      loop_control:
+        label: "{{ item.item }}"

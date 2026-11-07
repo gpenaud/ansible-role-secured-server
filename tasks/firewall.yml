@@ -1,0 +1,75 @@
+---
+# ufw : tout refuse en entree sauf la liste, tout permis en sortie. La regle
+# SSH est posee avant d activer le pare-feu, et le noyau garde les connexions
+# deja ouvertes pendant l activation.
+
+- name: "Pare-feu - ufw"
+  become: true
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: "Pare-feu - Le module de suivi de connexions, charge et persistant"
+  become: true
+  community.general.modprobe:
+    name: nf_conntrack
+    state: present
+    persistent: present
+
+- name: "Pare-feu - Garder les connexions ouvertes pendant l activation"
+  become: true
+  ansible.posix.sysctl:
+    name: net.netfilter.nf_conntrack_tcp_be_liberal
+    value: "1"
+    sysctl_set: true
+    state: present
+    reload: true
+    # Sur une machine sans aucun pare-feu, le reglage n existe pas tant que le
+    # module n est pas la ; le modprobe ci-dessus y pourvoit, ceci est la ceinture.
+    ignoreerrors: true
+
+- name: "Pare-feu - Ports autorises"
+  become: true
+  community.general.ufw:
+    rule: "{{ item.rule | default('allow') }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    comment: "{{ item.comment | default(omit) }}"
+  loop: "{{ secure_server_ufw_allowed_ports }}"
+  loop_control:
+    label: "{{ item.rule | default('allow') }} {{ item.port }}/{{ item.proto | default('tcp') }}"
+
+- name: "Pare-feu - Reseaux autorises"
+  become: true
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+  loop: "{{ secure_server_ufw_allowed_sources }}"
+
+- name: "Pare-feu - Routes autorisees"
+  become: true
+  community.general.ufw:
+    rule: allow
+    route: true
+    src: "{{ item.src | default('any') }}"
+    dest: "{{ item.dest | default('any') }}"
+  loop: "{{ secure_server_ufw_allowed_routes }}"
+
+- name: "Pare-feu - L ancienne regle OpenSSH des images cloud"
+  become: true
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+    delete: true
+
+- name: "Pare-feu - Journalisation"
+  become: true
+  community.general.ufw:
+    logging: "{{ secure_server_ufw_logging }}"
+
+- name: "Pare-feu - Refus par defaut en entree, puis activation"
+  become: true
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

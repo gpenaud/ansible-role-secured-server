@@ -1,0 +1,54 @@
+---
+# CrowdSec : lit les journaux, decide, et le bouncer pose les bannissements
+# dans iptables. Le depot officiel (packagecloud) donne une version a jour ;
+# il est declare directement, sans « curl | bash ». Les paquets sont des
+# binaires Go identiques d une version de Debian a l autre : quand le depot
+# n a pas encore la version en cours (trixie en novembre 2026), celui de la
+# precedente sert (secure_server_crowdsec_suite).
+
+- name: "CrowdSec - Depot officiel"
+  become: true
+  ansible.builtin.deb822_repository:
+    name: crowdsec
+    types: deb
+    uris: "https://packagecloud.io/crowdsec/crowdsec/{{ ansible_distribution | lower }}"
+    suites: "{{ secure_server_crowdsec_suite }}"
+    components: main
+    signed_by: https://packagecloud.io/crowdsec/crowdsec/gpgkey
+    state: present
+  register: crowdsec_repo
+  when: secure_server_crowdsec | bool
+
+- name: "CrowdSec - L ancien fichier de depot pose par le script d installation"
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/crowdsec_crowdsec.list
+    state: absent
+  when: secure_server_crowdsec | bool
+
+- name: "CrowdSec - Paquets"
+  become: true
+  ansible.builtin.apt:
+    name: [crowdsec, crowdsec-firewall-bouncer-iptables]
+    state: present
+    update_cache: true
+  when: secure_server_crowdsec | bool
+
+- name: "CrowdSec - Collections"
+  become: true
+  ansible.builtin.command:
+    cmd: cscli collections install {{ secure_server_crowdsec_collections | join(' ') }}
+  register: cscli
+  changed_when: "'Nothing to do' not in cscli.stdout and 'already installed' not in cscli.stdout and 'already installed' not in cscli.stderr"
+  failed_when: cscli.rc != 0 and 'already' not in cscli.stderr
+  notify: Reload crowdsec
+  when: secure_server_crowdsec | bool
+
+- name: "CrowdSec - Services actifs"
+  become: true
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [crowdsec, crowdsec-firewall-bouncer]
+  when: secure_server_crowdsec | bool

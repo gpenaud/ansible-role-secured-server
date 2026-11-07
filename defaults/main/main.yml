@@ -1,0 +1,31 @@
+---
+# gpenaud.secured-server — ce que le role tient pour acquis, et que l inventaire
+# surcharge. Tout est dans defaults/main/ : charge automatiquement, et une
+# valeur d inventaire l emporte toujours (ce que faisait echouer l ancien
+# include_vars de sous-dossiers, qui prenait le pas sur l inventaire).
+
+# Le compte de service : il porte la cle d Ansible et rien d autre.
+secure_server_user: operator
+secure_server_group: operator
+# Le mot de passe du compte, celui que sudo demande. Par defaut le NOM du
+# compte : a surcharger sur toute machine exposee (deploy-vps.yml le refuse vide).
+secure_server_user_password: "{{ secure_server_user }}"
+# La cle publique autorisee sur le compte de service. SEULE cle du compte : ce
+# qui n est pas elle est retire d authorized_keys.
+secure_server_ssh_key: "{{ lookup('file', '~/.ssh/work.pub') }}"
+
+secure_server_fqdn: "{{ inventory_hostname }}"
+secure_server_admin_email: ops.gpenaud@gmail.com
+
+# Qui entre par SSH (groupe sshusers, AllowGroups) et qui a sudo (groupe
+# sudousers). Membres EXACTS : un compte retire de la liste perd le droit.
+secure_server_ssh_allowed_users: ["{{ secure_server_user }}"]
+secure_server_sudo_allowed_users: ["{{ secure_server_user }}"]
+
+# Les comptes par defaut des images cloud, supprimes s ils existent — sauf
+# celui par lequel Ansible est connecte, pour ne pas scier la branche.
+secure_server_remove_default_users: [ubuntu, debian]
+
+# apt : mise a niveau complete a chaque passage. Long au premier, puis vite.
+secure_server_upgrade_packages: true
+secure_server_packages: [vim, git, curl, iproute2, netcat-openbsd, man-db, less]

@@ -1,24 +1,14 @@
 ---
-- name: Destroy
+- name: Destroy Incus VM
   hosts: localhost
-  connection: local
   gather_facts: false
-  no_log: "{{ molecule_no_log }}"
   tasks:
-    - name: Check instance config file exist
-      ansible.builtin.stat:
-        path: "{{ molecule_instance_config }}"
-      register: file_exist
+    - name: Stop VM
+      ansible.builtin.command:
+        cmd: incus stop secured-server --force
+      ignore_errors: true
 
-    - name: Destroy VM
-      when: file_exist.stat.exists
-      block:
-        - name: Load Instance config File
-          ansible.builtin.set_fact:
-            instance_conf: "{{ lookup('file', molecule_instance_config) | from_yaml }}"
-
-        - name: Destroy
-          ansible.builtin.include_tasks: incus-destroy.yml
-          loop: '{{ instance_conf }}'
-          loop_control:
-            loop_var: platform
+    - name: Delete VM
+      ansible.builtin.command:
+        cmd: incus delete secured-server
+      ignore_errors: true

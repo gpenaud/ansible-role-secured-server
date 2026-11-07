@@ -1,0 +1,15 @@
+---
+# ufw : tout est refuse en entree, sauf cette liste. Les ports que Docker
+# publie passent par la chaine DOCKER-USER, a la charge du playbook qui
+# installe Docker (deploy-vps.yml). Une machine Kubernetes ajoute ses ports et
+# ses reseaux ici, depuis son inventaire — plus rien de k3s n est code en dur.
+secure_server_ufw_allowed_ports:
+  - { port: "22", proto: tcp, rule: limit }   # limit : ralentit la force brute
+  - { port: "80", proto: tcp, rule: allow }
+  - { port: "443", proto: tcp, rule: allow }
+  - { port: "443", proto: udp, rule: allow }  # HTTP/3
+# Reseaux entiers autorises en entree (ex. un reseau de pods), et routes
+# autorisees (forward) : { src, dest } — vides par defaut.
+secure_server_ufw_allowed_sources: []
+secure_server_ufw_allowed_routes: []
+secure_server_ufw_logging: low

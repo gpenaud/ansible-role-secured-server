@@ -1,0 +1,34 @@
+---
+# L heure par systemd-timesyncd, livre et actif sur Debian comme Ubuntu. Un
+# demon NTP complet (ntp, ntpsec, chrony) n apporte rien a une machine qui ne
+# sert pas l heure, et deux demons se disputeraient l horloge.
+
+- name: "Heure - Pas de second demon NTP"
+  become: true
+  ansible.builtin.apt:
+    name: [ntp, ntpsec, ntpdate, chrony]
+    state: absent
+    purge: true
+
+- name: "Heure - systemd-timesyncd (paquet a part sur Debian)"
+  become: true
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: present
+
+- name: "Heure - Serveurs de systemd-timesyncd"
+  become: true
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart timesyncd
+
+- name: "Heure - systemd-timesyncd actif"
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd
+    enabled: true
+    state: started

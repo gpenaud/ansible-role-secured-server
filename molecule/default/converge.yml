@@ -1,10 +1,13 @@
 ---
-- name: "Molecule - Test convergence playbook"
+- name: Converge
   hosts: all
-  gather_facts: false
-
-  tasks:
-    - name: "Molecule - Include gpenaud.secure_server role"
-      ansible.builtin.include_role:
-        name: gpenaud.secure_server
-      tags: always
+  gather_facts: true
+  vars:
+    secure_server_fqdn: secured-server.test
+    secure_server_user_password: "un-mot-de-passe-de-test-long"
+    # Le conteneur de test est joint en « ubuntu » : il reste autorise, sinon la
+    # seconde passe ne pourrait plus entrer.
+    secure_server_ssh_allowed_users: [operator, ubuntu]
+    secure_server_sudo_allowed_users: [operator, ubuntu]
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"

@@ -1,0 +1,3 @@
+# {{ ansible_managed }} — gpenaud.secured-server
+{{ secure_server_mail_smarthost.split('::')[0] }}:{{ secure_server_mail_user }}:{{ secure_server_mail_password }}
+*.google.com:{{ secure_server_mail_user }}:{{ secure_server_mail_password }}

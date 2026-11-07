@@ -1,19 +1,22 @@
 ---
 galaxy_info:
-  role_name: secure_server
+  role_name: secured_server
   namespace: gpenaud
-
   author: Guillaume Penaud
-  description: |-
-    configure some basics security aspects, like:
-      - SSH configuration.
-      - Packages and security updates.
-      - Firewalling configuration with UFW.
-      - Fail2Ban configuration.
-
   company: Alter-IT
-  license: GPL-v3
-  min_ansible_version: "2.1"
-
-  galaxy_tags: []
+  license: GPL-3.0-only
+  min_ansible_version: "2.15"
+  description: >-
+    Ferme une machine Debian ou Ubuntu exposee : comptes et sudo par groupes,
+    SSH par cles seules, ufw, CrowdSec, mises a jour automatiques, AIDE, Lynis,
+    courrier sortant optionnel.
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm, trixie]
+  galaxy_tags: [security, hardening, ssh, ufw, crowdsec, debian, ubuntu]
 dependencies: []
+collections:
+  - community.general
+  - ansible.posix

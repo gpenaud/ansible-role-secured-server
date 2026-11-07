@@ -1,0 +1,7 @@
+---
+# SSH : cles seules, un groupe autorise, pas de tunnels. Le port reste 22 :
+# le changer n arrete personne et complique tout le reste.
+secure_server_ssh_port: 22
+# L acces SFTP (scp moderne, rsync par ssh) : utile aux administrateurs, sans
+# risque supplementaire quand l authentification est par cle.
+secure_server_ssh_sftp: true

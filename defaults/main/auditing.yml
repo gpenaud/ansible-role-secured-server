@@ -1,0 +1,23 @@
+---
+# AIDE : integrite des fichiers, controle quotidien par cron (compte rendu par
+# courrier si le relais est configure). La base est initialisee une fois.
+secure_server_aide: true
+secure_server_aide_rules:
+  - name: local_user_operator
+    patterns:
+      # « Full » : le groupe de regles que Debian et Ubuntu definissent dans
+      # /etc/aide/aide.conf (la casse compte ; « FULL » n existe pas).
+      - "/home/{{ secure_server_user }} Full"
+
+# Lynis : un audit hebdomadaire, le rapport dans /var/log/lynis-report.dat, le
+# score dans /var/log/lynis.log. C est la mesure qu on compare d un passage a l autre.
+secure_server_lynis: true
+
+# rkhunter et ClamAV : utiles sur un serveur de fichiers ou de courrier, peu sur
+# un hote de conteneurs, et chers (ClamAV : un gigaoctet de memoire). Eteints.
+secure_server_rkhunter: false
+secure_server_clamav: false
+secure_server_clamav_dirs: [/srv]
+
+# logwatch : un resume quotidien des journaux par courrier. Suit le relais.
+secure_server_logwatch: "{{ secure_server_mail_smarthost | length > 0 }}"

@@ -1,42 +1,48 @@
 ---
-
-- name: "Restart ssh service"
+- name: Restart ssh
   become: true
   ansible.builtin.service:
     name: ssh
     state: restarted
 
-- name: "Restart ntp service"
+- name: Restart timesyncd
   become: true
-  ansible.builtin.service:
-    name: ntp
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd
     state: restarted
 
-- name: "Restart rng-tools service"
+- name: Reload ufw
   become: true
-  ansible.builtin.service:
-    name: rng-tools
-    state: restarted
-
-- name: "Reload ufw service"
   community.general.ufw:
     state: reloaded
+  # « Reload ufw service » : le nom qu employaient les playbooks ecrits pour
+  # l ancienne version du role.
+  listen: ["Reload ufw", "Reload ufw service"]
 
-- name: "Restart psad service"
-  ansible.builtin.shell: |
-    psad -R
-    psad --sig-update
-    psad -H
-  tags:
-    - skip_ansible_lint
+- name: Reload crowdsec
+  become: true
+  ansible.builtin.systemd_service:
+    name: crowdsec
+    state: reloaded
 
-- name: "Reload systemd"
+- name: Reload systemd
+  become: true
   ansible.builtin.systemd_service:
     daemon_reload: true
 
-- name: "Restart prometheus service"
+- name: Update exim4
   become: true
-  ansible.builtin.systemd_service:
-    name: prometheus
+  ansible.builtin.command:
+    cmd: update-exim4.conf
+  notify: Restart exim4
+
+- name: Restart exim4
+  become: true
+  ansible.builtin.service:
+    name: exim4
     state: restarted
-    enabled: true
+
+- name: Update aliases
+  become: true
+  ansible.builtin.command:
+    cmd: newaliases

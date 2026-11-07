@@ -1,0 +1,13 @@
+# {{ ansible_managed }} — gpenaud.secured-server
+[Time]
+{% set region = secure_server_ntp_region | default('') %}
+{% if region == 'fr' %}
+NTP=0.fr.pool.ntp.org 1.fr.pool.ntp.org 2.fr.pool.ntp.org 3.fr.pool.ntp.org
+{% elif region == 'eu' %}
+NTP=0.europe.pool.ntp.org 1.europe.pool.ntp.org 2.europe.pool.ntp.org 3.europe.pool.ntp.org
+{% elif region == 'us' %}
+NTP=0.us.pool.ntp.org 1.us.pool.ntp.org 2.us.pool.ntp.org 3.us.pool.ntp.org
+{% else %}
+NTP=0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org
+{% endif %}
+FallbackNTP=ntp.ubuntu.com 0.debian.pool.ntp.org
